@@ -1,7 +1,9 @@
 from copy import copy
 
+from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
+from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
@@ -31,6 +33,16 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
     change_form_template = "admin/duplicator/change_form.html"
     actions = [duplicate_selected_objects]
 
+    def __init__(self, model, admin_site):
+        super().__init__(model, admin_site)
+
+        if "duplicator" not in settings.INSTALLED_APPS:
+            raise ImproperlyConfigured(
+                "The 'duplicator' app must be added to your INSTALLED_APPS "
+                "in settings.py to correctly load the necessary templates and actions. "
+                f"(Error source: {self.__class__.__name__})"
+            )
+
     def _duplicate(self, original_object):
         if hasattr(original_object, "clone"):
             new_object = original_object.clone()
@@ -40,8 +52,7 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
             if hasattr(new_object, "name"):
                 new_object.name = "{} (Copy)".format(new_object.name)
 
-            new_object.save()
-
+        new_object.save()
         return new_object
 
     def get_urls(self):
