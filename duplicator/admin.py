@@ -1,27 +1,46 @@
 from django.contrib import admin
+from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
 
 
-@admin.action(description="Duplicate selected %(verbose_name_plural)s)")
-def duplicate_selected_objects(modeladmin, request, queryset):
+@admin.action(description=_("Duplicate selected %(verbose_name_plural)s"))
+def duplicate_selected_objects(model_admin, request, queryset):
+    if not model_admin.has_add_permission(request):
+        model_admin.message_user(
+            request,
+            _("You do not have permission to duplicate these objects."),
+            level=messages.ERROR,
+        )
+        return
+
     cnt = 0
     for obj in queryset:
-        if hasattr(obj, "clone"):
-            obj.clone()
-        else:
-            obj.pk = None
-            obj.save()
-
+        model_admin._duplicate(obj)
         cnt += 1
 
-    modeladmin.message_user(request, _("Successfully duplicated %d records" % cnt))
+    model_admin.message_user(
+        request, _("Successfully duplicated %d records" % cnt), level=messages.SUCCESS
+    )
 
 
 class DuplicatorAdminMixin(admin.ModelAdmin):
     change_form_template = "admin/duplicator/change_form.html"
     actions = [duplicate_selected_objects]
+
+    def _duplicate(self, original_object):
+        if hasattr(original_object, "clone"):
+            new_object = original_object.clone()
+        else:
+            new_object = original_object.__class__.objects.get(pk=original_object.pk)
+            new_object.pk = None
+            if hasattr(new_object, "name"):
+                new_object.name = "{} (Copy)".format(new_object.name)
+
+            new_object.save()
+
+        return new_object
 
     def get_urls(self):
         urls = super(DuplicatorAdminMixin, self).get_urls()
@@ -37,18 +56,29 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
 
         return custom_urls + urls
 
-    def duplicate_view(self, request, object_id, form_url=""):
+    def duplicate_view(self, request, object_id):
+        if not self.has_add_permission(request):
+            return self.message_user(
+                request,
+                _("You do not have permission to duplicate this object."),
+                level=messages.ERROR,
+            )
+
         original_object = self.get_object(request, object_id)
 
+        # not found
         if not original_object:
             return redirect("..")
 
-        if hasattr(original_object, "clone"):
-            new_object = original_object.clone()
-        else:
-            new_object = original_object.__class__.objects.get(pk=original_object.pk)
-            new_object.pk = None
-            new_object.save()
+        # clone object
+        new_object = self._duplicate(original_object)
+
+        self.message_user(
+            request,
+            _('Successfully duplicated object "%(obj)s".')
+            % {"obj": str(original_object)},
+            level=messages.SUCCESS,
+        )
 
         return redirect(
             "admin:%s_%s_change"
