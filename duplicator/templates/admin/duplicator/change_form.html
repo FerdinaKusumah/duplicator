@@ -29,11 +29,11 @@
 
 {% if change and original.pk %}
 <script>document.addEventListener("DOMContentLoaded", (function () {
-    const e = document.getElementById("dup-btn-link"), t = document.querySelector('input[name="_continue"]');
-    if (t && e) {
-        t.after(e);
-        const n = document.getElementById("dup-btn-wrap");
-        n && n.remove()
+    const e = document.getElementById("dup-btn-link"), n = document.querySelector('input[name="_continue"]');
+    if (n && e) {
+        n.after(e);
+        const t = document.getElementById("dup-btn-wrap");
+        t && t.remove()
     }
 }));</script>
 {% endif %}
