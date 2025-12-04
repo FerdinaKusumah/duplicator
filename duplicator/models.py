@@ -3,7 +3,7 @@ from copy import copy
 
 class DuplicatorMixin:
 
-    def clone(self, **kwargs):
+    def clone(self, commit=True, **kwargs):
         # clone instance
         new_instance = copy(self)
 
@@ -18,7 +18,8 @@ class DuplicatorMixin:
         for key, value in kwargs.items():
             setattr(new_instance, key, value)
 
-        # save new instance
-        new_instance.save()
+        if commit:
+            # save new instance
+            new_instance.save()
 
         return new_instance
