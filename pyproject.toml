@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "django-duplicator"
+version = "0.1.0"
+description = "A reusable Django app to easily duplicate model records."
+authors = ["Ferdina Kusumah <ferdina.kusumah@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "duplicator" }]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+Django = ">=3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

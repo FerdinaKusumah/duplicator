@@ -1,0 +1,42 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls admin_modify static %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+
+{% if change and original.pk %}
+{% url opts|admin_urlname:'duplicate' original.pk|admin_urlquote as duplicate_url %}
+
+<div id="dup-btn-wrap" style="display: none;">
+    <a href="{% add_preserved_filters duplicate_url %}"
+       id="dup-btn-link"
+       class="button"
+       style="background: #417690;
+                      color: white;
+                      margin-left: 5px;
+                      float: left;
+                      border-radius: 4px;
+                      display: inline-block;
+                      text-decoration: none;
+                      padding: 10px 15px;">
+        {% translate 'Duplicate and continue editing' %}
+    </a>
+</div>
+{% endif %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+
+{% if change and original.pk %}
+<script>document.addEventListener("DOMContentLoaded", (function () {
+    const e = document.getElementById("dup-btn-link"), t = document.querySelector('input[name="_continue"]');
+    if (t && e) {
+        t.after(e);
+        const n = document.getElementById("dup-btn-wrap");
+        n && n.remove()
+    }
+}));</script>
+{% endif %}
+{% endblock %}
+
+{% endblock %}
