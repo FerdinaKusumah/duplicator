@@ -1,3 +1,5 @@
+from copy import copy
+
 from django.contrib import admin
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -33,7 +35,7 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
         if hasattr(original_object, "clone"):
             new_object = original_object.clone()
         else:
-            new_object = original_object.__class__.objects.get(pk=original_object.pk)
+            new_object = copy(original_object)
             new_object.pk = None
             if hasattr(new_object, "name"):
                 new_object.name = "{} (Copy)".format(new_object.name)
