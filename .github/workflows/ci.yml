@@ -30,28 +30,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
           version: 1.8.3
           virtualenvs-create: true
 
-      - name: Ensure Setuptools/LooseVersion is available (Fix Python 3.12)
-        if: ${{ matrix.python == '3.12' }}
-        run: poetry run pip install setuptools
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
 
-      - name: Install dependencies (Base & Black)
+      - name: Install dependencies, Tools, & Fixes
         run: |
           poetry install --no-root
           poetry run pip install black
-
-      - name: Override Django Version
-        run: |  
+          
+          if [ "${{ matrix.python }}" == "3.12" ]; then
+            poetry run pip install setuptools;
+          fi
+          
           poetry run pip install "Django==${{ matrix.django }}"
 
       - name: ⚙️ Run Black Linter Check
