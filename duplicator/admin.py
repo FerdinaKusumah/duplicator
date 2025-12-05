@@ -59,8 +59,26 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
                 f"to use DuplicatorAdminMixin."
             )
 
-        if duplicate_selected_objects.__name__ not in self.actions:
-            self.actions = list(self.actions) + [duplicate_selected_objects]
+        # prevent error duplicate action names
+        new_actions = []
+        for action in self.actions:
+            if not action is duplicate_selected_objects:
+                new_actions.append(action)
+                continue
+
+            model_name = self.model._meta.model_name
+            unique_action_name = f"duplicate_{model_name}_selected"
+
+            def unique_action(model_admin, request, queryset):
+                return duplicate_selected_objects(model_admin, request, queryset)
+
+            unique_action.__name__ = unique_action_name
+            unique_action.short_description = (
+                duplicate_selected_objects.short_description
+            )
+            new_actions.append(unique_action)
+
+        self.actions = tuple(new_actions)
 
     def _duplicate(self, original_object):
         new_object = original_object.clone()
