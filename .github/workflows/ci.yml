@@ -12,10 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
+
       matrix:
         python: ["3.8", "3.10", "3.12"]
         django: ["3.2", "4.2", "5.0"]
-        fail-fast: false
 
     steps:
       - name: Checkout code
