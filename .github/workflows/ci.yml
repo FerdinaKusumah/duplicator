@@ -32,7 +32,6 @@ jobs:
         with:
           version: 1.8.3
           virtualenvs-create: true
-          virtualenvs-in-project: true
 
       - name: Install dependencies (Base)
         run: poetry install --no-root
