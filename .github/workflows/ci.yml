@@ -20,7 +20,7 @@ jobs:
           # Django 5.0 not supported Python 3.8
           - python: "3.8"
             django: "5.0"
-          # Django 3.2 not supported Python 3.10 above
+          # Django 3.2 not supported Python 3.10 above (This is what you already had, and it's correct)
           - python: "3.10"
             django: "3.2"
           - python: "3.12"
@@ -40,14 +40,18 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+          cache: 'poetry'
+
+      - name: Configure Poetry to use the correct Python version
+        run: poetry env use ${{ matrix.python }}
 
       - name: Install dependencies, Tools, & Fixes
         run: |
-          poetry install --no-root
+          poetry install
           poetry run pip install black
           
           if [ "${{ matrix.python }}" == "3.12" ]; then
-            poetry run pip install setuptools;
+            poetry run pip install setuptools packaging;
           fi
           
           poetry run pip install "Django==${{ matrix.django }}"
