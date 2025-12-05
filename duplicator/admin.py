@@ -1,15 +1,15 @@
-from copy import copy
-
 from django.conf import settings
 from django.contrib import admin
 from django.contrib import messages
 from django.core.exceptions import ImproperlyConfigured
+from django.db import transaction
 from django.shortcuts import redirect
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
 
 
 @admin.action(description=_("Duplicate selected %(verbose_name_plural)s"))
+@transaction.atomic
 def duplicate_selected_objects(model_admin, request, queryset):
     if not model_admin.has_add_permission(request):
         model_admin.message_user(
@@ -19,13 +19,15 @@ def duplicate_selected_objects(model_admin, request, queryset):
         )
         return
 
-    cnt = 0
+    dup_count = 0
     for obj in queryset:
         model_admin._duplicate(obj)
-        cnt += 1
+        dup_count += 1
 
     model_admin.message_user(
-        request, _("Successfully duplicated %d records" % cnt), level=messages.SUCCESS
+        request,
+        _("Successfully duplicated %d records" % dup_count),
+        level=messages.SUCCESS,
     )
 
 
@@ -34,25 +36,34 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
     actions = [duplicate_selected_objects]
 
     def __init__(self, model, admin_site):
-        super().__init__(model, admin_site)
+        app_is_installed = False
+        app_config_name = "duplicator"
 
-        if "duplicator" not in settings.INSTALLED_APPS:
+        for app in settings.INSTALLED_APPS:
+            if app == app_config_name or app.startswith(f"{app_config_name}.apps."):
+                app_is_installed = True
+                break
+
+        if not app_is_installed:
             raise ImproperlyConfigured(
                 "The 'duplicator' app must be added to your INSTALLED_APPS "
                 "in settings.py to correctly load the necessary templates and actions. "
                 f"(Error source: {self.__class__.__name__})"
             )
 
-    def _duplicate(self, original_object):
-        if hasattr(original_object, "clone"):
-            new_object = original_object.clone()
-        else:
-            new_object = copy(original_object)
-            new_object.pk = None
-            if hasattr(new_object, "name"):
-                new_object.name = "{} (Copy)".format(new_object.name)
+        super().__init__(model, admin_site)
 
-        new_object.save()
+        if not hasattr(model, "clone"):
+            raise ImproperlyConfigured(
+                f"Model {model.__name__} must inherit DuplicatorMixin "
+                f"to use DuplicatorAdminMixin."
+            )
+
+        if duplicate_selected_objects.__name__ not in self.actions:
+            self.actions = list(self.actions) + [duplicate_selected_objects]
+
+    def _duplicate(self, original_object):
+        new_object = original_object.clone()
         return new_object
 
     def get_urls(self):

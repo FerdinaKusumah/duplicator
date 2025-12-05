@@ -1,4 +1,4 @@
-.PHONY: build install test clean
+.PHONY: build install test clean format
 
 build:
 	poetry build
@@ -10,7 +10,7 @@ format:
 	poetry run black .
 
 test:
-	poetry run pytest
+	poetry run django-admin test duplicator.tests --settings=duplicator.tests.settings --pythonpath=.
 
 clean:
 	rm -rf dist/

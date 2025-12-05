@@ -1,7 +1,15 @@
 from copy import copy
 
 
-class DuplicatorMixin:
+class DuplicatorMixin(object):
+    """
+    Base mixin to add cloning capabilities to a Django model.
+    It provides a base clone method that performs a shallow copy,
+    resets the primary key, and saves the new object.
+    """
+
+    class Meta:
+        abstract = True
 
     def clone(self, commit=True, **kwargs):
         # clone instance
