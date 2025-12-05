@@ -35,3 +35,6 @@ Django = ">=3.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
