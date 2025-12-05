@@ -21,7 +21,7 @@ def duplicate_selected_objects(model_admin, request, queryset):
 
     dup_count = 0
     for obj in queryset:
-        model_admin._duplicate(obj)
+        obj.clone()
         dup_count += 1
 
     model_admin.message_user(
@@ -80,10 +80,6 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
 
         self.actions = tuple(new_actions)
 
-    def _duplicate(self, original_object):
-        new_object = original_object.clone()
-        return new_object
-
     def get_urls(self):
         urls = super(DuplicatorAdminMixin, self).get_urls()
         info = self.model._meta.app_label, self.model._meta.model_name
@@ -113,7 +109,7 @@ class DuplicatorAdminMixin(admin.ModelAdmin):
             return redirect("..")
 
         # clone object
-        new_object = self._duplicate(original_object)
+        new_object = original_object.clone()
 
         self.message_user(
             request,
