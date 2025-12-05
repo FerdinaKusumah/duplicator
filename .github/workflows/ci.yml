@@ -1,0 +1,61 @@
+name: Django Duplicator CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ develop ]
+
+jobs:
+  test:
+    name: Py ${{ matrix.python }} / Django ${{ matrix.django }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.10", "3.12"]
+        django: ["3.2", "4.2", "5.0"]
+        exclude:
+          # Django 5.0 not supported Python 3.8
+          - python: "3.8"
+            django: "5.0"
+          # Django 3.2 not supported Python 3.10 above
+          - python: "3.10"
+            django: "3.2"
+          - python: "3.12"
+            django: "3.2"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+          virtualenvs-create: true
+
+      - name: Ensure Setuptools/LooseVersion is available (Fix Python 3.12)
+        if: ${{ matrix.python == '3.12' }}
+        run: poetry run pip install setuptools
+
+      - name: Install dependencies (Base & Black)
+        run: |
+          poetry install --no-root
+          poetry run pip install black
+
+      - name: Override Django Version
+        run: |  
+          poetry run pip install "Django==${{ matrix.django }}"
+
+      - name: ⚙️ Run Black Linter Check
+        run: poetry run black --check .
+
+      - name: 🧪 Run Unit Tests
+        run: make test
