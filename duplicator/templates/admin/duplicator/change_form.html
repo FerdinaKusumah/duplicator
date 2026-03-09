@@ -28,14 +28,19 @@
 {{ block.super }}
 
 {% if change and original.pk %}
-<script>document.addEventListener("DOMContentLoaded", (function () {
-    const e = document.getElementById("dup-btn-link"), n = document.querySelector('input[name="_continue"]');
-    if (n && e) {
-        n.after(e);
-        const t = document.getElementById("dup-btn-wrap");
-        t && t.remove()
+<script>document.addEventListener("DOMContentLoaded", function () {
+    let e = document.getElementById("dup-btn-link"), t = document.querySelector('input[name="_continue"]');
+    if (t && e) {
+        e.removeAttribute("style"), e.className = t.className;
+        let n = t.parentElement;
+        if (n && "DIV" === n.tagName && n !== document.body) {
+            let l = n.cloneNode(!1);
+            l.appendChild(e), n.after(l)
+        } else t.after(e);
+        let a = document.getElementById("dup-btn-wrap");
+        a && a.remove()
     }
-}));</script>
+});</script>
 {% endif %}
 {% endblock %}
 
