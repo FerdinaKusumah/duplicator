@@ -8,19 +8,25 @@
 {% url opts|admin_urlname:'duplicate' original.pk|admin_urlquote as duplicate_url %}
 
 <div id="dup-btn-wrap" style="display: none;">
-    <a href="{% add_preserved_filters duplicate_url %}"
-       id="dup-btn-link"
-       class="button"
-       style="background: #417690;
+    {# Submits the change form's CSRF token to the duplicate view, which only accepts POST #}
+    <button type="submit"
+            formaction="{% add_preserved_filters duplicate_url %}"
+            formmethod="post"
+            formnovalidate
+            id="dup-btn-link"
+            class="button"
+            style="background: #417690;
                       color: white;
                       margin-left: 5px;
                       float: left;
+                      border: 0;
                       border-radius: 4px;
                       display: inline-block;
+                      cursor: pointer;
                       text-decoration: none;
                       padding: 10px 15px;">
         {% translate 'Duplicate and continue editing' %}
-    </a>
+    </button>
 </div>
 {% endif %}
 

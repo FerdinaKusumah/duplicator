@@ -3,13 +3,13 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.contrib.messages.middleware import MessageMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.db import models
 from django.test import TestCase, RequestFactory, override_settings
 
 from duplicator.admin import DuplicatorAdminMixin
 from duplicator.admin import duplicate_selected_objects
-from duplicator.tests.dummy_models import CloneModel, NoCloneModel
+from duplicator.tests.dummy_models import CloneModel, NoCloneModel, UniqueModel
 
 test_site = AdminSite(name="test_admin")
 
@@ -40,6 +40,7 @@ class NoCloneModelAdmin(DuplicatorAdminMixin, admin.ModelAdmin):
 
 test_site.register(CloneModel, CloneModelAdmin)
 test_site.register(NoCloneModel, NoCloneModelAdmin)
+test_site.register(UniqueModel, DuplicatorAdminMixin)
 
 
 @override_settings(ROOT_URLCONF="duplicator.tests.urls")
@@ -85,7 +86,8 @@ class DuplicatorClonePathTest(DuplicatorAdminCoreTest):
 
     def test_02_duplicate_view_no_permission(self):
         request = self._create_request(user=self.no_perm_user)
-        self.model_admin.duplicate_view(request, str(self.obj_orig.pk))
+        with self.assertRaises(PermissionDenied):
+            self.model_admin.duplicate_view(request, str(self.obj_orig.pk))
         self.assertEqual(CloneModel.objects.count(), 1)
 
     def test_03_duplicate_selected_objects_action_success(self):
