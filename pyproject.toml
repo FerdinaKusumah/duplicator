@@ -1,43 +1,54 @@
 [tool.poetry]
 name = "django-duplicator"
-version = "0.1.5"
+version = "0.2.0"
 description = "A reusable Django app to easily duplicate model records."
 authors = ["Ferdina Kusumah <ferdina.kusumah@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{ include = "duplicator" }]
+exclude = ["duplicator/tests"]
 
 homepage = "https://github.com/FerdinaKusumah/duplicator"
 repository = "https://github.com/FerdinaKusumah/duplicator"
-keywords = ["django", "admin", "mixin", "djang-duplicator", "bulk-action"]
+keywords = ["django", "admin", "mixin", "django-duplicator", "bulk-action", "duplicate", "clone"]
 
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Framework :: Django",
-    "Framework :: Django :: 3.2",
     "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
+    "Framework :: Django :: 6.1",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP",
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
-Django = ">=3.2"
+python = ">=3.10,<4.0"
+Django = ">=4.2"
 
 [tool.poetry.group.dev.dependencies]
-black = "^24.4.0"
+black = ">=24"
+coverage = { version = ">=7", extras = ["toml"] }
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+target-version = ["py310"]
+
+[tool.coverage.run]
+source = ["duplicator"]
+omit = ["duplicator/tests/*"]
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true

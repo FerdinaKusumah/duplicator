@@ -1,44 +1,44 @@
-# Django Duplicator 🔁
+# django-duplicator
 
-A lightweight mixin for Django Admin that adds object duplication functionality, both in bulk (via an Admin Action) and
-for single objects (via a "Duplicate and continue editing" button on the change form).
+[![CI](https://github.com/FerdinaKusumah/duplicator/actions/workflows/ci.yml/badge.svg)](https://github.com/FerdinaKusumah/duplicator/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/django-duplicator.svg)](https://pypi.org/project/django-duplicator/)
+[![Python](https://img.shields.io/pypi/pyversions/django-duplicator.svg)](https://pypi.org/project/django-duplicator/)
+[![Django](https://img.shields.io/pypi/frameworkversions/django/django-duplicator.svg)](https://pypi.org/project/django-duplicator/)
 
----
+A lightweight mixin for Django Admin that adds object duplication, both in bulk (an admin action) and for single objects
+(a "Duplicate and continue editing" button on the change form).
 
-## ✨ Key Features
+* **Single duplication**: a "Duplicate and continue editing" button on the change form opens the new copy.
+* **Bulk duplication**: an admin action duplicates the selected objects from the changelist, all or nothing.
+* **Data control**: exclude fields from duplication, such as unique fields or timestamps.
+* **Safe by default**: duplicating needs a POST and the right permissions, and database errors are shown as messages
+  instead of crashing the admin.
 
-* **Single Object Duplication**: A "Duplicate and continue editing" button appears on the object detail page.
-* **Bulk Duplication (Admin Action)**: An Admin Action is provided to duplicate selected objects from the changelist
-  page.
-* **Data Control**: Easily **exclude specific fields** from duplication to ensure data integrity (e.g., unique fields,
-  timestamps).
-* **DRY and Flexible**: Uses simple model and Admin mixins that are easy to integrate into any Django model.
-
----
-
-## 💻 Installation
+## Installation
 
 ```shell
-  pip install django-duplicator
+pip install django-duplicator
 ```
 
-Add `duplicator` to your `INSTALLED_APPS` in settings.py:
+Requires Python 3.10+ and Django 4.2+ (tested on 4.2, 5.2, 6.0 and 6.1).
+
+Add `duplicator` to your `INSTALLED_APPS`:
 
 ```python
 # settings.py
 INSTALLED_APPS = [
     # ...
-    'django.contrib.admin',
+    "django.contrib.admin",
     # ...
-    'duplicator',
+    "duplicator",
 ]
 ```
 
-## 🚀 Usage
+## Usage
 
-### 1. Model (Enabling Duplication)
+### 1. Model
 
-To make your model duplicatable, you must inherit from DuplicatorMixin.
+Inherit from `DuplicatorMixin` to make a model duplicatable:
 
 ```python
 # models.py
@@ -49,15 +49,13 @@ from duplicator import DuplicatorMixin
 class Customer(DuplicatorMixin, models.Model):
     name = models.CharField(max_length=255)
 
-    # ... other fields ...
-
     def __str__(self):
         return self.name
 ```
 
-### 2. Admin (Enabling Buttons and Actions)
+### 2. Admin
 
-To enable both the single duplication button and the bulk duplication Admin Action, inherit from DuplicatorAdminMixin.
+Inherit from `DuplicatorAdminMixin` to get both the change form button and the bulk action:
 
 ```python
 # admin.py
@@ -68,19 +66,29 @@ from .models import Customer
 
 @admin.register(Customer)
 class CustomerAdmin(DuplicatorAdminMixin, admin.ModelAdmin):
-    list_display = ('name', 'id')
-    # ... other admin configurations ...
+    list_display = ("name", "id")
 ```
 
----
+A user needs the **add** permission, plus **view** or **change** permission on the object, to duplicate it.
 
-## ⚙️ Customization: Excluding Fields (Safety Feature)
+## What gets copied
 
-By default, the duplicator performs a shallow copy of all fields. You can prevent specific fields (like unique fields,
-slugs, or timestamps) from being copied by defining the **DUPLICATOR_EXCLUDE_FIELDS** list in your model.
+* Every concrete field except primary keys, so the copy is a new row. With multi-table inheritance, the parent rows are
+  new as well; the original is never modified.
+* Foreign keys point to the same related objects.
+* Many-to-many relations, except those with a custom `through` model (they can carry extra data, so copying them is up
+  to you).
+* A text field called `name` gets a ` (Copy)` suffix, shortened if needed to fit its `max_length`. Empty names are left
+  as they are.
 
-Fields in this list will be ignored during the copy process and will revert to their model's default value or None (
-behaving like a new record).
+The copy is made from the **saved** object: unsaved edits on the change form are not included.
+
+## Customization
+
+### Excluding fields
+
+List fields that must not be copied in `DUPLICATOR_EXCLUDE_FIELDS`. They get their default value on the copy, like on a
+new record. This works for many-to-many fields too.
 
 ```python
 # models.py
@@ -88,38 +96,86 @@ from duplicator import DuplicatorMixin
 
 
 class Product(DuplicatorMixin, models.Model):
-    # 🛡️ EXCLUDE FIELDS: Use this list to prevent certain fields from being copied.
     DUPLICATOR_EXCLUDE_FIELDS = [
-        'sku',  # Assuming 'sku' must be unique or has a default
-        'created_at',  # Should be set to the current time by Django
-        'last_modified',  # Should be updated by Django
+        "sku",  # unique
+        "created_at",
+        "last_modified",
     ]
 
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    # ...
 ```
 
-## 📸 Feature Demonstration
+If a copy breaks a database constraint, for example a unique field that is not excluded, the admin shows the error and
+nothing is duplicated.
 
-### A. Bulk Duplication (Admin Action)
+### Overriding values
+
+`clone()` accepts field values for the copy:
+
+```python
+copy = product.clone(name="Product B", sku="B-001")
+```
+
+### Customizing `clone()`
+
+Override `clone()` to adjust the copy. With `commit=False`, save the copy yourself and then copy the many-to-many
+relations:
+
+```python
+class Product(DuplicatorMixin, models.Model):
+    def clone(self, commit=True, **kwargs):
+        copy = super().clone(commit=False, **kwargs)
+        copy.sku = f"{self.sku}-COPY"
+        if commit:
+            copy.save()
+            self.copy_many_to_many(copy)
+        return copy
+```
+
+## Feature demonstration
+
+### A. Bulk duplication (admin action)
 
 The duplication option appears in the Actions dropdown menu on the changelist page.
 
 ![Action](./images/action.png)
 
-### B. Single Duplication (Change Form Button)
+### B. Single duplication (change form button)
 
-The "Duplicate and continue editing" button is prominently placed on the object detail page.
+The "Duplicate and continue editing" button is placed on the object detail page.
 
 ![Detail](./images/detail.png)
 
-## 🤝 Contributing
+## Upgrading from 0.1
 
-We welcome all contributions! If you find a bug or have a feature suggestion, please open an Issue or submit a Pull
-Request.
+* The duplicate view only accepts POST. The change form button already submits a POST; if you linked to
+  `<object_id>/duplicate/` yourself, submit a form instead of following a link.
+* Users without permission get a 403 instead of a server error, and they need view or change permission on the object
+  as well as the add permission.
+* Many-to-many relations are now copied. Add them to `DUPLICATOR_EXCLUDE_FIELDS` to keep the old behaviour.
+* Python 3.8 and 3.9 are no longer supported.
+* Fixed: a model without its own `class Meta` became abstract (no table) because of the mixin.
+* Fixed: duplicating a multi-table inheritance child overwrote the original's parent row.
 
-## 📄 License
+## Development
 
-This project is licensed under the [Your License Type, e.g., MIT License]. See the LICENSE file for full details.
+```shell
+make install   # poetry install
+make test      # tests with coverage
+make format    # black
+```
+
+## Help & Bugs
+
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-blue.svg)](https://github.com/FerdinaKusumah/duplicator/issues)
+
+If you find a bug or have a feature suggestion,
+please [open an issue](https://github.com/FerdinaKusumah/duplicator/issues) or submit a pull request.
+
+## License
+
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+**django-duplicator** is released under MIT. See `LICENSE` for more details.
