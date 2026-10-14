@@ -14,45 +14,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.8", "3.10", "3.12"]
-        django: ["3.2", "4.2", "5.0"]
-        exclude:
-          # Django 5.0 not supported Python 3.8
-          - python: "3.8"
-            django: "5.0"
-          # Django 3.2 not supported Python 3.10 above
-          - python: "3.10"
-            django: "3.2"
-          - python: "3.12"
-            django: "3.2"
+        # Django 6.x needs Python 3.12 or newer
+        include:
+          - { python: "3.10", django: "4.2" }
+          - { python: "3.10", django: "5.2" }
+          - { python: "3.12", django: "5.2" }
+          - { python: "3.12", django: "6.0" }
+          - { python: "3.12", django: "6.1" }
+          - { python: "3.13", django: "6.1" }
+          - { python: "3.14", django: "6.1" }
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python }}
+        id: python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.8.3
-          virtualenvs-create: true
+        # Poetry runs on the runner's Python; only the project uses the matrix one.
+        run: pipx install poetry==1.8.4
 
-      - name: Ensure Setuptools/LooseVersion is available (Fix Python 3.12)
-        if: ${{ matrix.python == '3.12' }}
-        run: poetry run pip install setuptools
-
-      - name: Install dependencies (Base & Black)
+      - name: Install dependencies
         run: |
+          poetry env use "${{ steps.python.outputs.python-path }}"
           poetry install --no-root
-          poetry run pip install black
-
-      - name: Override Django Version
-        run: |  
-          poetry run pip install "Django==${{ matrix.django }}"
+          poetry run pip install "Django~=${{ matrix.django }}.0"
 
       - name: ⚙️ Run Black Linter Check
         run: poetry run black --check .
